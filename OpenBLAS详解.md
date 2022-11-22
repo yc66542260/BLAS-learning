@@ -8,6 +8,24 @@
 
 [BLAS、OpenBLAS、ATLAS、MKL](https://blog.csdn.net/fuhanghang/article/details/122885265)
 
+[OpenBLAS学习一：源码架构解析&GEMM分析](https://blog.csdn.net/frank2679/article/details/113243044)
+
+[OpenBLAS调用关系](https://blog.csdn.net/tianruoqiwo/article/details/74457538)
+
+[OpenBLAS源码架构](https://blog.csdn.net/zzk1995/article/details/70991878)
+
+[BLAS函数定义 netlib](http://netlib.org/blas/)
+
+[BLAS函数定义 ustc](https://scc.ustc.edu.cn/zlsc/tc4600/intel/2015.1.133/mkl/mklman/index.htm#GUID-0FA59BFC-ACEE-4736-8B27-2AA76C7A6AD8.htm)
+
+[修改cmake脚本的路径依赖](https://cloud.tencent.com/developer/article/1011794)
+
+[xianyi/OpenBLAS介绍与矩阵优化](https://www.leiphone.com/news/201704/Puevv3ZWxn0heoEv.html)
+
+`Huang, Jianyu, and Robert A Van De Geijn. “BLISlab: A Sandbox for Optimizing GEMM.” arXiv: Mathematical Software (2016).`
+`Goto, Kazushige, and Robert A Van De Geijn. “Anatomy of high-performance matrix multiplication.” ACM Transactions on Mathematical Software 34.3 (2008).`
+`Goto, Kazushige, and Robert A Van De Geijn. “High-performance implementation of the level-3 BLAS.” ACM Transactions on Mathematical Software 35.1 (2008).`
+
 ## 2.OpenBLAS简介
 
 ### OpenBLAS
@@ -20,7 +38,7 @@ Openblas在编译时根据目标硬件进行优化，生成运行效率很高的
 
 **注意：`OpenBLAS` 的编译依赖系统环境，并且没有原生单线程版本，即不支持单核计算加速，通过设置 `OMP_NUM_THREADS=1` 来模拟单线程版本，可能会带来一点点的性能下降。**
 
-**注意：OpenBLAS不支持GPU**
+**注意：`OpenBLAS`不支持GPU**
 
 ### 类似运算库
 
@@ -68,7 +86,11 @@ Eigen是一个C++语言中的开源的模板库，支持线性代数的运算，
 
 Armdillo 矩阵运算速度跟 MATLAB 一个量级，为目前使用比较广的 C++ 矩阵运算库之一，是在 C++ 下使用 MATLAB 方式操作矩阵很好的选择，许多 MATLAB 的矩阵操作函数都可以找到对应，这对习惯了Matlab的人来说实在是非常方便，另外如果要将 MATLAB 下做研究的代码改写成 C++，使用 Armadillo 也会很方便，这里有一个简易的 MATLAB 到Armadillo 的语法转换。
 
-**注意：**`Eigen`和`Armadillo`不仅可以使用自身的线性代数实现，还可以通过配置指定上述不同的BLAS/LAPACK作为底层。
+**注意：**
+
+`1.Eigen带有内置的快速矩阵乘积和线性矩阵分解，而Armadillo为此需要链接到外部BLAS / Lapack库。
+2.Eigen针对小型固定大小矩阵（例如3x3或4x4）和大型动态动态大小的矩阵进行了完全优化，而Arma仅支持后者`
+`3.对于稀疏线性系统而言-Eigen的性能要比Armadillo好得多。`
 
 ![](./%5C1.png)
 
@@ -138,6 +160,12 @@ Interface 层的主要作用是根据接口的参数，指定要执行的分支�
 
 <img src="./%5C2.png" style="zoom:67%;" />
 
+**注意：**在OpenBLAS接口层中，运算又分为三个类型，分别是level1到3，其中level3对应矩阵和矩阵的运算，level2和level1依次维度越来越低。分别指矢量和矢量，矢量和矩阵，矩阵和矩阵间的计算，对应的复杂度分别是：
+$$
+O(n), O(n^2), O(n^3)
+$$
+ 不过这些level1~3都是BLAS内部计算时使用的接口（源代码基本在driver/level下），对外界用户的接口是不涉及这个概念的（对外接口基本都在interface文件夹下）
+
 以 gemm 为例，调用关系如下。
 
 ```c++
@@ -150,7 +178,7 @@ gemm assembly kernels at kernel/
 
 具体采用的哪个 kernel 查看预先写好的配置文件 ./kernel/$(ARCH)/KERNEL.$(CPU)。
 
-图下图
+如下图
 
 ![](./%5C3.png)
 
